@@ -12,13 +12,14 @@ class EmotionalTimeBert(nn.Module):
         self.head_emotions = nn.Linear(hidden, num_labels)
         self.time_embed = nn.Embedding(max_time + 1, hidden)
         self.speakers_embed = nn.Embedding(max_speakers + 1, hidden)
-        self.temporal_transformer = TemporalTransformer(hidden, 2, 8, 0.1)
+        self.temporal_transformer = TemporalTransformer(hidden, 2, 8, 0.1)# 2, 8, 0.1)# num_labels, hidden, False)
         self.state_gru = nn.GRU(
             input_size=hidden,
             hidden_size=hidden,
             batch_first=True
         )
         # self.alpha = nn.Parameter(torch.tensor(0.1))
+
 
         # pause training bert
         # for p in self.encoder.parameters():
@@ -62,12 +63,13 @@ class EmotionalTimeBert(nn.Module):
         h_all[flat_mask] = h
 
         speakers = speakers + 1
-
+         # all
         h_t = h_all.view(B, T, H)
         time_vec = self.time_embed(timestamps)
         speakers_vec = self.speakers_embed(speakers)
         Z = h_t + time_vec + speakers_vec
-        padding_mask = (labels == -1)
+        padding_mask = (labels == -1)# (timestamps == 0) # & (speakers == 0)
+
         U = self.temporal_transformer(Z, padding_mask)
 
         H_state, _ = self.state_gru(U)
@@ -76,4 +78,10 @@ class EmotionalTimeBert(nn.Module):
         U_residual = U + alpha * H_state
 
         logits = self.head_emotions(U_residual)
+
+
+
+        # U = self.temporal_transformer(Z, padding_mask)
+        #
+        # logits = self.head_emotions(U)
         return logits
