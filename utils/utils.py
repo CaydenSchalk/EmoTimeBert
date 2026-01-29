@@ -1,16 +1,15 @@
 import torch
-from sklearn.metrics import f1_score
 from tqdm import tqdm
 from sklearn.metrics import f1_score, classification_report
 
-def train_model(model, optimizer, device, criterion, bar):
+def train_model(model, optimizer, device, criterion, bar, train_step_losses=None, global_steps=None, start_step=0):
     model.train()
     total_loss = 0.0
     num_batches = 0
+    step = start_step
 
     for batch in bar:
         optimizer.zero_grad()
-        postfix = {}
 
         input_ids = batch["input_ids"].to(device)
         attention_mask = batch["attention_mask"].to(device)
@@ -25,10 +24,14 @@ def train_model(model, optimizer, device, criterion, bar):
             labels.view(-1)
         )
 
-        postfix["ED Loss"] = loss.item()
-
         loss.backward()
         optimizer.step()
+
+        if train_step_losses is not None:
+            train_step_losses.append(loss.item())
+        if global_steps is not None:
+            global_steps.append(step)
+        step += 1
 
         total_loss += loss.item()
 
@@ -38,15 +41,16 @@ def train_model(model, optimizer, device, criterion, bar):
 
     avg_loss = total_loss / num_batches
 
-    return avg_loss
+    return avg_loss, step
 
-def validate_model(model, device, criterion, bar):
+def validate_model(model, device, criterion, bar, val_step_losses=None, val_steps=None, start_step=0):
     model.eval()
     total_loss = 0.0
     num_batches = 0
 
     all_preds = []
     all_labels = []
+    step = start_step
 
     with torch.no_grad():
         for batch in bar:
@@ -80,6 +84,12 @@ def validate_model(model, device, criterion, bar):
             all_preds.append(preds[mask].cpu())
             all_labels.append(labels[mask].cpu())
 
+            if val_step_losses is not None:
+                val_step_losses.append(loss.item())
+            if val_steps is not None:
+                val_steps.append(step)
+            step += 1
+
             bar.set_postfix(step="Validating", loss=loss.item())
 
     avg_val_loss = total_loss / num_batches
@@ -93,7 +103,7 @@ def validate_model(model, device, criterion, bar):
         average="macro"
     )
 
-    return avg_val_loss, macro_f1
+    return avg_val_loss, macro_f1, step
 
 def test_model(model, dataloader, device, emotion_labels=None):
     model.eval()

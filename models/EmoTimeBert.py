@@ -1,11 +1,10 @@
-import os
 import torch
 import torch.nn as nn
 from transformers import AutoModel
 from models.TemporalTransformer import TemporalTransformer
 
 class EmotionalTimeBert(nn.Module):
-    def __init__(self, encoder_name, num_labels, max_time = 8, max_speakers=2):
+    def __init__(self, encoder_name, num_labels, max_time = 16, max_speakers=2):
         super().__init__()
         self.encoder = AutoModel.from_pretrained(encoder_name)
         hidden = self.encoder.config.hidden_size
@@ -13,7 +12,13 @@ class EmotionalTimeBert(nn.Module):
         self.head_emotions = nn.Linear(hidden, num_labels)
         self.time_embed = nn.Embedding(max_time + 1, hidden)
         self.speakers_embed = nn.Embedding(max_speakers + 1, hidden)
-        self.temporal_transformer = TemporalTransformer(hidden, 2, 8, 0.1)# num_labels, hidden, False)
+        self.temporal_transformer = TemporalTransformer(hidden, 2, 8, 0.1)
+        self.state_gru = nn.GRU(
+            input_size=hidden,
+            hidden_size=hidden,
+            batch_first=True
+        )
+        # self.alpha = nn.Parameter(torch.tensor(0.1))
 
         # pause training bert
         # for p in self.encoder.parameters():
@@ -62,8 +67,13 @@ class EmotionalTimeBert(nn.Module):
         time_vec = self.time_embed(timestamps)
         speakers_vec = self.speakers_embed(speakers)
         Z = h_t + time_vec + speakers_vec
-        padding_mask = (labels == -1)# (timestamps == 0) # & (speakers == 0)
+        padding_mask = (labels == -1)
         U = self.temporal_transformer(Z, padding_mask)
 
-        logits = self.head_emotions(U)
+        H_state, _ = self.state_gru(U)
+
+        alpha = 0.1 # torch.clamp(self.alpha, 0.0, 1.0)
+        U_residual = U + alpha * H_state
+
+        logits = self.head_emotions(U_residual)
         return logits
