@@ -1,22 +1,18 @@
 from datasets import load_dataset
 
+def load_meld_dfs(trust_remote_code=True):
+    full_meld_data = load_dataset("./data/meld/", trust_remote_code=trust_remote_code)
 
-def load_empath_dfs(trust_remote_code=True):
-    full_empath_data = load_dataset(
-        "facebook/empathetic_dialogues",
-        trust_remote_code=trust_remote_code,
-    )
-    empath_data = full_empath_data["train"].to_pandas()
-    val_empath_data = full_empath_data["validation"].to_pandas()
-    return empath_data, val_empath_data
+    meld_data = full_meld_data["train"].to_pandas()
+    val_meld_data = full_meld_data["validation"].to_pandas()
+
+    return meld_data, val_meld_data
 
 
-def load_empath_split(split, trust_remote_code=True):
-    full_empath_data = load_dataset(
-        "facebook/empathetic_dialogues",
-        trust_remote_code=trust_remote_code,
-    )
-    return full_empath_data[split].to_pandas()
+def load_meld_split(split, trust_remote_code=True):
+    full_meld_data = load_dataset("./data/meld/", trust_remote_code=trust_remote_code)
+
+    return full_meld_data[split].to_pandas()
 
 
 def build_emotion_mapping(empath_data):
@@ -53,17 +49,17 @@ def build_conversations(empath_data, emotion_to_id):
 
 
 def load_empath_conversations(trust_remote_code=True):
-    empath_data, val_empath_data = load_empath_dfs(
+    meld_data, val_meld_data = load_meld_dfs(
         trust_remote_code=trust_remote_code
     )
-    emotion_labels, emotion_to_id = build_emotion_mapping(empath_data)
+    emotion_labels, emotion_to_id = build_emotion_mapping(meld_data)
 
-    conversations = build_conversations(empath_data, emotion_to_id)
-    val_conversations = build_conversations(val_empath_data, emotion_to_id)
+    conversations = build_conversations(meld_data, emotion_to_id)
+    val_conversations = build_conversations(val_meld_data, emotion_to_id)
 
     return conversations, val_conversations, emotion_labels, emotion_to_id
 
 
 def load_empath_test_conversations(emotion_to_id, trust_remote_code=True):
-    test_empath_data = load_empath_split("test", trust_remote_code=trust_remote_code)
-    return build_conversations(test_empath_data, emotion_to_id)
+    test_meld_data = load_meld_split("test", trust_remote_code=trust_remote_code)
+    return build_conversations(test_meld_data, emotion_to_id)
