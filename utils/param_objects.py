@@ -6,6 +6,7 @@ class EmpatheticDialogueParams:
     max_time: int
     max_speakers: int
 
+@dataclass
 class MELDParams:
     num_labels: int
     max_time: int
