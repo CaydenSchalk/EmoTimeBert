@@ -1,4 +1,7 @@
 import torch
+import pandas as pd
+import re
+from pathlib import Path
 from tqdm import tqdm
 from sklearn.metrics import f1_score, classification_report
 
@@ -105,7 +108,7 @@ def validate_model(model, device, criterion, bar, val_step_losses=None, val_step
 
     return avg_val_loss, macro_f1, step
 
-def test_model(model, dataloader, device, emotion_labels=None):
+def test_model(model, dataloader, device, emotion_labels=None, save_results=False, save_dir=None):
     model.eval()
 
     all_preds = []
@@ -149,12 +152,25 @@ def test_model(model, dataloader, device, emotion_labels=None):
 
     if emotion_labels is not None:
         print("\nPer-emotion results:")
-        print(classification_report(
+        report_to_print = classification_report(
             all_labels.numpy(),
             all_preds.numpy(),
             target_names=emotion_labels,
             digits=3
-        ))
+        )
+        print(report_to_print)
+
+        if save_results:
+            report_to_save = classification_report(
+                all_labels.numpy(),
+                all_preds.numpy(),
+                target_names=emotion_labels,
+                digits=3,
+                output_dict=True
+            )
+            df = pd.DataFrame(report_to_save).transpose()
+            df.to_csv(save_dir)
+
 
     return macro_f1, all_preds, all_labels
 
@@ -210,3 +226,28 @@ def collate_conversations(batch, tokenizer, max_len=128):
         "speakers": torch.stack(padded_speakers),
         "utterance_mask": torch.stack(utterance_mask)
     }
+
+def save_table_as_csv(table, path):
+    df = pd.DataFrame(table)
+    df.to_csv(path, index=False)
+
+def create_new_run_dir(base_dir="Runs", new_dir=True):
+    base_dir = Path(base_dir)
+    base_dir.mkdir(parents=True, exist_ok=True)
+
+    run_pattern = re.compile(r"^Run (\d+)$")
+    existing_runs = []
+
+    for p in base_dir.iterdir():
+        if p.is_dir():
+            match = run_pattern.match(p.name)
+            if match:
+                existing_runs.append(int(match.group(1)))
+    if not new_dir:
+        run_dir = base_dir / f"Run {max(existing_runs)}"
+    else:
+        next_run = max(existing_runs, default=0) + 1
+        run_dir = base_dir / f"Run {next_run}"
+        run_dir.mkdir()
+
+    return run_dir
