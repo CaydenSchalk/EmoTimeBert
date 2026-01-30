@@ -4,16 +4,14 @@ from transformers import AutoModel
 from models.temporal_transformer import TemporalTransformer
 from utils.param_objects import EmpatheticDialogueParams, MELDParams
 
-
-
 class EmotionalTimeBert(nn.Module):
-    def __init__(self, encoder_name, empathetic_params : EmpatheticDialogueParams, meld_params : MELDParams):
+    def __init__(self, encoder_name, empathetic_params : EmpatheticDialogueParams): # , meld_params : MELDParams
         super().__init__()
         self.encoder = AutoModel.from_pretrained(encoder_name)
         hidden = self.encoder.config.hidden_size
 
         self.head_emotions = nn.Linear(hidden, empathetic_params.num_labels)
-        self.head_meld = nn.Linear(hidden, meld_params.num_labels)
+        # self.head_meld = nn.Linear(hidden, meld_params.num_labels)
         self.time_embed = nn.Embedding(empathetic_params.max_time + 1, hidden)
         self.speakers_embed = nn.Embedding(empathetic_params.max_speakers + 1, hidden)
         self.temporal_transformer = TemporalTransformer(hidden, 2, 8, 0.1)# 2, 8, 0.1)# num_labels, hidden, False)

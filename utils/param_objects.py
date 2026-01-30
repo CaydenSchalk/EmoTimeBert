@@ -3,8 +3,8 @@ from dataclasses import dataclass
 @dataclass
 class EmpatheticDialogueParams:
     num_labels: int
-    max_time: int
-    max_speakers: int
+    max_time: int = 16
+    max_speakers: int = 2
 
 @dataclass
 class MELDParams:
