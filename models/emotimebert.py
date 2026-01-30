@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from transformers import AutoModel
-from models.TemporalTransformer import TemporalTransformer
+from models.temporal_transformer import TemporalTransformer
 
 class EmotionalTimeBert(nn.Module):
     def __init__(self, encoder_name, num_labels, max_time = 16, max_speakers=2):

@@ -231,11 +231,11 @@ def save_table_as_csv(table, path):
     df = pd.DataFrame(table)
     df.to_csv(path, index=False)
 
-def create_new_run_dir(base_dir="Runs", new_dir=True):
+def create_new_run_dir(base_dir="runs", new_dir=True):
     base_dir = Path(base_dir)
     base_dir.mkdir(parents=True, exist_ok=True)
 
-    run_pattern = re.compile(r"^Run (\d+)$")
+    run_pattern = re.compile(r"^run(\d+)$")
     existing_runs = []
 
     for p in base_dir.iterdir():
@@ -244,10 +244,10 @@ def create_new_run_dir(base_dir="Runs", new_dir=True):
             if match:
                 existing_runs.append(int(match.group(1)))
     if not new_dir:
-        run_dir = base_dir / f"Run {max(existing_runs)}"
+        run_dir = base_dir / f"run{max(existing_runs)}"
     else:
         next_run = max(existing_runs, default=0) + 1
-        run_dir = base_dir / f"Run {next_run}"
+        run_dir = base_dir / f"run{next_run}"
         run_dir.mkdir()
 
     return run_dir
