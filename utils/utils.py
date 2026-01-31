@@ -281,7 +281,8 @@ def compute_class_weights(dataloader, num_classes, device):
 
     counts[counts == 0] = 1.0
 
-    weights = 1.0 / counts
+    # softer than 1/count
+    weights = torch.sqrt(counts) # 1.0 / counts
     weights = weights / weights.sum() * num_classes
 
     return weights.to(device)
