@@ -1,7 +1,7 @@
 from datasets import load_dataset, VerificationMode
 import numpy as np
 
-emotion_id_to_label = np.array([
+emotion_id_to_label_with_sentiment = np.array([
     "neutral neutral",
     "surprise positive",
     "fear negative",
@@ -11,6 +11,22 @@ emotion_id_to_label = np.array([
     "disgust negative",
     "anger negative",
 ], dtype=object)
+
+emotion_id_to_label = np.array([
+    "neutral",
+    "surprise",
+    "fear",
+    "surprise",
+    "sadness",
+    "joy",
+    "disgust",
+    "anger",
+], dtype=object)
+
+label_to_emotion_id = {
+    label: i for i, label in enumerate(emotion_id_to_label)
+}
+
 
 def load_meld_dfs(trust_remote_code=True):
     full_meld_data = load_dataset("./data/meld/", trust_remote_code=trust_remote_code,

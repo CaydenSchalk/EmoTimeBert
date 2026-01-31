@@ -50,7 +50,7 @@ class EmotionalTimeBert(nn.Module):
         )
 
         self.use_gru = False
-        # self.alpha = nn.Parameter(torch.tensor(0.1))
+        self.alpha = nn.Parameter(torch.tensor(0.1))
 
 
         # pause training bert
@@ -64,7 +64,7 @@ class EmotionalTimeBert(nn.Module):
         for p in self.encoder.parameters():
             p.requires_grad = False
 
-        for layer in self.encoder.encoder.layer[-4:]:
+        for layer in self.encoder.encoder.layer[-6:]:
             for p in layer.parameters():
                 p.requires_grad = True
 
@@ -114,6 +114,7 @@ class EmotionalTimeBert(nn.Module):
 
             alpha = 0.1  # torch.clamp(self.alpha, 0.0, 1.0)
             if self.use_gru:
+                alpha = torch.clamp(self.alpha, 0.0, 1.0)
                 U_residual = U + alpha * H_state
             else:
                 U_residual = U

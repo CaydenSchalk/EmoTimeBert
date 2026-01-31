@@ -6,6 +6,44 @@ from pathlib import Path
 from tqdm import tqdm
 from sklearn.metrics import f1_score, classification_report
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class FocalLoss(nn.Module):
+    def __init__(self, alpha=None, gamma=2.0, ignore_index=-1, reduction="mean"):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.ignore_index = ignore_index
+        self.reduction = reduction
+
+    def forward(self, logits, targets):
+        valid_mask = targets != self.ignore_index
+        logits = logits[valid_mask]
+        targets = targets[valid_mask]
+
+        log_probs = F.log_softmax(logits, dim=-1)
+        probs = log_probs.exp()
+
+        target_log_probs = log_probs.gather(1, targets.unsqueeze(1)).squeeze(1)
+        target_probs = probs.gather(1, targets.unsqueeze(1)).squeeze(1)
+
+        focal_term = (1 - target_probs) ** self.gamma
+        loss = -focal_term * target_log_probs
+
+        if self.alpha is not None:
+            alpha_t = self.alpha[targets]
+            loss = alpha_t * loss
+
+        if self.reduction == "mean":
+            return loss.mean()
+        elif self.reduction == "sum":
+            return loss.sum()
+        else:
+            return loss
+
+
 def train_model(model, optimizer, device, criterion, bar, train_step_losses=None, global_steps=None, start_step=0):
     model.train()
     total_loss = 0.0
@@ -36,6 +74,9 @@ def train_model(model, optimizer, device, criterion, bar, train_step_losses=None
         # print("yuh")
 
         loss.backward()
+
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+
         optimizer.step()
 
         if train_step_losses is not None:
