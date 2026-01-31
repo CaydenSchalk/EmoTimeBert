@@ -9,5 +9,5 @@ class EmpatheticDialogueParams:
 @dataclass
 class MELDParams:
     num_labels: int
-    max_time: int
-    max_speakers: int
+    max_time: int = 24
+    max_speakers: int = 9
