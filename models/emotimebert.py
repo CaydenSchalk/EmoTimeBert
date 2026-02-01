@@ -51,9 +51,12 @@ class EmotionalTimeBert(nn.Module):
 
         self.use_gru = False
         self.alpha = nn.Parameter(torch.tensor(0.1))
+        self.time_scale = nn.Parameter(torch.tensor(0.1))
 
 
-        # pause training bert
+
+
+# pause training bert
         # for p in self.encoder.parameters():
         #     p.requires_grad = False
 
@@ -102,11 +105,25 @@ class EmotionalTimeBert(nn.Module):
             # normalize to seconds instead of just ms, got an overflow issue without it
             # timestamps = timestamps.float() / 1000.0
             # timestamps = timestamps / 60.0
-            time_vec = self.time_proj(timestamps.unsqueeze(-1))
+
+            timestamps = torch.arange(T, device=h.device).float()
+            timestamps = timestamps / max(T - 1, 1)
+
+            timestamps = timestamps.unsqueeze(0).expand(B, T)   # (B, T)
+            time_vec = self.time_proj(timestamps.unsqueeze(-1)) # (B, T, H)
+
+            # time_vec = self.time_proj(timestamps.unsqueeze(-1))
             # time_vec = self.time_proj(timestamps.float().unsqueeze(-1))
             speakers_vec = self.speakers_embed(speakers)
-            Z = h_t + time_vec + speakers_vec
-            padding_mask = (labels == -1)  # (timestamps == 0) # & (speakers == 0)
+
+            padding_mask = (labels == -1)   # (B, T)
+            valid = (~padding_mask).unsqueeze(-1).float()
+
+            time_vec = time_vec * valid
+            speakers_vec = speakers_vec * valid
+
+            scale = torch.clamp(self.time_scale, 0.0, 2.0)
+            Z = h_t + (scale * time_vec) + speakers_vec
 
             U = self.temporal_transformer(Z, padding_mask)
 
